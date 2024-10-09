@@ -19,6 +19,8 @@ const logger = new Logger(`AzureTableStorageModule`);
 const PROVIDERS = [AzureTableStorageService, AzureTableStorageRepository];
 const EXPORTS = [...PROVIDERS];
 
+let _options: AzureTableStorageOptions | AzureTableStorageModuleAsyncOptions | undefined;
+
 type EntityFn = /* Function */ {
   name: string;
 };
@@ -32,6 +34,8 @@ export class AzureTableStorageModule {
   }
 
   static forRoot(options?: AzureTableStorageOptions): DynamicModule {
+    console.log('forRoot', options);
+    _options = options;
     return {
       module: AzureTableStorageModule,
       providers: [
@@ -41,16 +45,23 @@ export class AzureTableStorageModule {
           provide: AZURE_TABLE_STORAGE_NAME,
           useValue: '',
         },
+        {
+          provide: AZURE_TABLE_STORAGE_FEATURE_OPTIONS,
+          useValue: {},
+        },
       ],
       exports: [...EXPORTS, AZURE_TABLE_STORAGE_MODULE_OPTIONS],
     };
   }
 
   static forRootAsync(options: AzureTableStorageModuleAsyncOptions): DynamicModule {
+    console.log('forRootAsync', options);
+    _options = options;
     return {
       module: AzureTableStorageModule,
       imports: options.imports,
       providers: [
+        // { provide: AZURE_TABLE_STORAGE_MODULE_OPTIONS, useValue: options },
         {
           provide: AZURE_TABLE_STORAGE_NAME,
           useValue: '',
@@ -98,26 +109,57 @@ export class AzureTableStorageModule {
 
   static forFeature(
     entity: EntityFn,
-    options: AzureTableStorageFeatureOptions = {
+    featureOptions: AzureTableStorageFeatureOptions = {
       // use either the given table name or the entity name
       table: entity.name,
       createTableIfNotExists: false,
     },
   ): DynamicModule {
+    console.log('forFeature', entity);
     const repositoryProviders = createRepositoryProviders(entity);
+
+    const moduleOptions: Provider = {
+      provide: AZURE_TABLE_STORAGE_MODULE_OPTIONS,
+      useFactory: async (...args) => {
+        if (
+          'imports' in _options ||
+          'inject' in _options ||
+          'useClass' in _options ||
+          'useExisting' in _options ||
+          'useFactory' in _options
+        ) {
+          const { useFactory, useExisting, useClass } = _options;
+
+          // if (useFactory) return { useFactory };
+          if (useFactory) return useFactory(...args);
+          else if (useClass)
+            // TODO: don't instantiate this yourself
+            return new useClass().createAzureTableStorageOptions();
+          else if (useExisting) {
+            // TODO: don't instantiate this yourself
+            return new useExisting().createAzureTableStorageOptions();
+          }
+        }
+
+        return _options;
+      },
+    };
+
+    console.log({ moduleOptions });
 
     return {
       module: AzureTableStorageModule,
       providers: [
         ...PROVIDERS,
         ...repositoryProviders,
+        moduleOptions,
         {
           provide: AZURE_TABLE_STORAGE_NAME,
-          useValue: options.table || entity.name,
+          useValue: featureOptions.table || entity.name,
         },
         {
           provide: AZURE_TABLE_STORAGE_FEATURE_OPTIONS,
-          useValue: options,
+          useValue: featureOptions,
         },
       ],
       exports: [...EXPORTS, ...repositoryProviders],
