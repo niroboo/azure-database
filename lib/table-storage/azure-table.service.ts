@@ -1,9 +1,8 @@
 import { TableClient, TableServiceClient } from '@azure/data-tables';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { AZURE_TABLE_STORAGE_MODULE_OPTIONS, AZURE_TABLE_STORAGE_NAME } from './azure-table.constant';
 import { AzureTableStorageOptions } from './azure-table.interface';
 import { ModuleRef } from '@nestjs/core';
-const logger = new Logger('AzureTableStorage');
 
 @Injectable()
 export class AzureTableStorageService {
