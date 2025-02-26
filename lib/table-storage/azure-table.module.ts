@@ -1,4 +1,4 @@
-import { DynamicModule, Logger, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Global, Logger, Module, Provider } from '@nestjs/common';
 import {
   AZURE_TABLE_STORAGE_FEATURE_OPTIONS,
   AZURE_TABLE_STORAGE_MODULE_OPTIONS,
@@ -19,12 +19,11 @@ const logger = new Logger(`AzureTableStorageModule`);
 const PROVIDERS = [AzureTableStorageService, AzureTableStorageRepository];
 const EXPORTS = [...PROVIDERS];
 
-let _options: AzureTableStorageOptions | AzureTableStorageModuleAsyncOptions | undefined;
-
 type EntityFn = /* Function */ {
   name: string;
 };
 
+@Global()
 @Module({})
 export class AzureTableStorageModule {
   constructor() {
@@ -34,8 +33,6 @@ export class AzureTableStorageModule {
   }
 
   static forRoot(options?: AzureTableStorageOptions): DynamicModule {
-    console.log('forRoot', options);
-    _options = options;
     return {
       module: AzureTableStorageModule,
       providers: [
@@ -55,13 +52,10 @@ export class AzureTableStorageModule {
   }
 
   static forRootAsync(options: AzureTableStorageModuleAsyncOptions): DynamicModule {
-    console.log('forRootAsync', options);
-    _options = options;
     return {
       module: AzureTableStorageModule,
       imports: options.imports,
       providers: [
-        // { provide: AZURE_TABLE_STORAGE_MODULE_OPTIONS, useValue: options },
         {
           provide: AZURE_TABLE_STORAGE_NAME,
           useValue: '',
@@ -73,7 +67,7 @@ export class AzureTableStorageModule {
         ...PROVIDERS,
         ...this.createAsyncProviders(options),
       ],
-      exports: [...EXPORTS],
+      exports: [...EXPORTS, AZURE_TABLE_STORAGE_MODULE_OPTIONS],
     };
   }
 
@@ -115,44 +109,13 @@ export class AzureTableStorageModule {
       createTableIfNotExists: false,
     },
   ): DynamicModule {
-    console.log('forFeature', entity);
     const repositoryProviders = createRepositoryProviders(entity);
-
-    const moduleOptions: Provider = {
-      provide: AZURE_TABLE_STORAGE_MODULE_OPTIONS,
-      useFactory: async (...args) => {
-        if (
-          'imports' in _options ||
-          'inject' in _options ||
-          'useClass' in _options ||
-          'useExisting' in _options ||
-          'useFactory' in _options
-        ) {
-          const { useFactory, useExisting, useClass } = _options;
-
-          // if (useFactory) return { useFactory };
-          if (useFactory) return useFactory(...args);
-          else if (useClass)
-            // TODO: don't instantiate this yourself
-            return new useClass().createAzureTableStorageOptions();
-          else if (useExisting) {
-            // TODO: don't instantiate this yourself
-            return new useExisting().createAzureTableStorageOptions();
-          }
-        }
-
-        return _options;
-      },
-    };
-
-    console.log({ moduleOptions });
 
     return {
       module: AzureTableStorageModule,
       providers: [
         ...PROVIDERS,
         ...repositoryProviders,
-        moduleOptions,
         {
           provide: AZURE_TABLE_STORAGE_NAME,
           useValue: featureOptions.table || entity.name,

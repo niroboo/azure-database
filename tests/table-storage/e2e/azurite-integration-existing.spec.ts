@@ -7,12 +7,14 @@ import { Logger, Module } from '@nestjs/common';
 
 const logger = new Logger(`AzureStorageRepository`);
 
+let connectionString: string;
+
 class ConfigService implements AzureTableStorageOptionsFactory {
   createAzureTableStorageOptions() {
     return {
       accountName: 'account-name',
       sasKey: 'sas-key',
-      connectionString: 'connection-string',
+      connectionString,
       allowInsecureConnection: true,
     };
   }
@@ -62,7 +64,7 @@ describe('azurite-integration-existing', () => {
 
     logger.log('Server listening');
 
-    const connectionString = `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://${tableHost}/devstoreaccount1;`;
+    connectionString = `DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;TableEndpoint=http://${tableHost}/devstoreaccount1;`;
     process.env.AZURE_STORAGE_CONNECTION_STRING = connectionString;
 
     moduleRef = await Test.createTestingModule({
