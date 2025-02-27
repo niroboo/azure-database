@@ -18,6 +18,7 @@ jobs:
     working_directory: ~/nest-azure-database
     docker:
       - image: cimg/node:21.1
+    resource_class: medium
     steps:
       - checkout
       - restore_cache:
