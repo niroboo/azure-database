@@ -21,6 +21,7 @@ export class AzuriteTable {
   }
 
   public async start() {
+    console.dir(process.env);
     this.server = spawn('azurite-table', ['--inMemoryPersistence', '--tablePort', this.port.toString()], {
       // Suppress DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
       env: { ...process.env, NODE_NO_WARNINGS: '1' },
@@ -66,6 +67,8 @@ export class AzuriteTable {
   }
 
   public stop() {
+    this.logger.log('Terminate Azurite server');
+
     // Unsubscribe from listeners to avoid open handles
     this.server.off('error', this.logger.error.bind(this.logger));
     this.server.off('warning', this.logger.warn.bind(this.logger));
@@ -74,7 +77,7 @@ export class AzuriteTable {
     this.server.stderr.removeAllListeners();
 
     // Attempt to gracefully terminate the server
-    this.server.kill();
+    this.server.kill('SIGKILL');
 
     this.logger.log('Azurite server terminated:', this.server.killed);
 
